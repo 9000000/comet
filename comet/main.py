@@ -32,6 +32,7 @@ from comet.utils.models import settings
 from comet.utils.bandwidth_monitor import bandwidth_monitor
 from comet.background_scraper.worker import background_scraper
 from comet.utils.anime_mapper import anime_mapper
+from comet.torrent_client import torrent_client
 
 
 class LoguruMiddleware(BaseHTTPMiddleware):
@@ -62,6 +63,9 @@ async def lifespan(app: FastAPI):
 
     # Initialize bandwidth monitoring system
     await bandwidth_monitor.initialize()
+
+    # Initialize torrent client
+    await torrent_client.init_session()
 
     # Start background cleanup tasks
     cleanup_locks_task = asyncio.create_task(cleanup_expired_locks())

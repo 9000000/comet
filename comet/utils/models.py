@@ -56,6 +56,7 @@ class AppSettings(BaseSettings):
     INDEXER_MANAGER_INDEXERS: List[str] = []
     GET_TORRENT_TIMEOUT: Optional[int] = 5
     DOWNLOAD_TORRENT_FILES: Optional[bool] = False
+    TORRENT_DOWNLOAD_PATH: Optional[str] = "/downloads"
     SCRAPE_COMET: Union[bool, str] = False
     COMET_URL: Union[str, List[str]] = "https://comet.elfhosted.com"
     SCRAPE_NYAA: Union[bool, str] = False

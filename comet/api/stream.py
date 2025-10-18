@@ -3,12 +3,15 @@ import asyncio
 import time
 import orjson
 import mediaflow_proxy.utils.http_utils
-
+import re
+import os
+import stat
 from urllib.parse import quote
-from fastapi import APIRouter, Request, BackgroundTasks
+from fastapi import APIRouter, Request, BackgroundTasks, HTTPException, status
 from fastapi.responses import (
     FileResponse,
     RedirectResponse,
+    StreamingResponse,
 )
 
 from comet.utils.models import settings, database, trackers
@@ -25,6 +28,7 @@ from comet.debrid.manager import get_debrid_extension, get_debrid
 from comet.utils.streaming import custom_handle_stream_request
 from comet.utils.logger import logger
 from comet.utils.distributed_lock import DistributedLock, is_scrape_in_progress
+from comet.torrent_client import torrent_client
 
 streams = APIRouter()
 
@@ -420,15 +424,16 @@ async def stream(
             }
 
             if debrid_service == "torrent":
-                the_stream["infoHash"] = info_hash
+                sources = torrent.get("sources", []) or trackers
+                magnet_link = f"magnet:?xt=urn:btih:{info_hash}&dn={quote(torrent_title)}"
+                for tracker in sources:
+                    magnet_link += f"&tr={quote(tracker)}"
 
-                if torrent["fileIndex"] is not None:
-                    the_stream["fileIdx"] = torrent["fileIndex"]
-
-                if len(torrent["sources"]) == 0:
-                    the_stream["sources"] = trackers
-                else:
-                    the_stream["sources"] = torrent["sources"]
+                asyncio.create_task(torrent_client.add_torrent(magnet_link))
+                file_index = torrent.get("fileIndex", 0)
+                if file_index is None:
+                    file_index = 0
+                the_stream["url"] = f"{request.url.scheme}://{request.url.netloc}/torrent/playback/{info_hash}/{file_index}"
             else:
                 the_stream["url"] = (
                     f"{request.url.scheme}://{request.url.netloc}/{b64config}/playback/{info_hash}/{torrent['fileIndex'] if torrent['cached'] and torrent['fileIndex'] is not None else 'n'}/{quote(title)}/{result_season}/{result_episode}/{quote(torrent_title)}"
@@ -554,3 +559,71 @@ async def playback(
             )
 
         return RedirectResponse(download_url, status_code=302)
+
+
+def get_range_header(range_header: str, file_size: int) -> tuple[int, int] | None:
+    if not range_header:
+        return None, None
+
+    match = re.match(r"bytes=(\d+)-(\d*)", range_header)
+    if not match:
+        raise HTTPException(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, detail="Invalid range header")
+
+    start_str, end_str = match.groups()
+    start = int(start_str)
+    end = int(end_str) if end_str else file_size - 1
+
+    if start >= file_size or end >= file_size:
+        raise HTTPException(status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE, detail="Range out of bounds")
+
+    return start, end
+
+
+@streams.get("/torrent/playback/{info_hash}/{file_index}")
+async def torrent_playback(request: Request, info_hash: str, file_index: int):
+    file_path = await torrent_client.wait_for_file_ready(info_hash, file_index)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="File not ready for playback or torrent not found.")
+
+    file_size = os.path.getsize(file_path)
+    range_header = request.headers.get("range")
+
+    headers = {
+        "content-type": "video/mp4",
+        "accept-ranges": "bytes",
+        "content-encoding": "identity",
+        "content-length": str(file_size),
+        "access-control-allow-origin": "*",
+        "access-control-allow-headers": "range, origin, x-requested-with",
+        "access-control-allow-methods": "GET, HEAD, OPTIONS",
+    }
+
+    start, end = get_range_header(range_header, file_size)
+
+    if start is None:
+        start, end = 0, file_size - 1
+        status_code = status.HTTP_200_OK
+    else:
+        status_code = status.HTTP_206_PARTIAL_CONTENT
+        headers["content-length"] = str(end - start + 1)
+        headers["content-range"] = f"bytes {start}-{end}/{file_size}"
+
+    chunk_size = 1024 * 1024
+
+    async def file_iterator(path, offset, length):
+        with open(path, "rb") as f:
+            f.seek(offset)
+            remaining = length
+            while remaining > 0:
+                data_to_read = min(chunk_size, remaining)
+                data = f.read(data_to_read)
+                if not data:
+                    break
+                remaining -= len(data)
+                yield data
+
+    return StreamingResponse(
+        file_iterator(file_path, start, end - start + 1),
+        status_code=status_code,
+        headers=headers,
+    )
