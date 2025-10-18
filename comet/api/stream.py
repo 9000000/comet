@@ -433,7 +433,7 @@ async def stream(
                 file_index = torrent.get("fileIndex", 0)
                 if file_index is None:
                     file_index = 0
-                the_stream["url"] = f"{request.url.scheme}://{request.url.netloc}/torrent/playback/{info_hash}/{file_index}"
+                the_stream["url"] = f"{request.url.scheme}://{request.url.netloc}/stream/{quote(torrent_title)}?link={info_hash}&index={file_index}"
             else:
                 the_stream["url"] = (
                     f"{request.url.scheme}://{request.url.netloc}/{b64config}/playback/{info_hash}/{torrent['fileIndex'] if torrent['cached'] and torrent['fileIndex'] is not None else 'n'}/{quote(title)}/{result_season}/{result_episode}/{quote(torrent_title)}"
@@ -579,9 +579,9 @@ def get_range_header(range_header: str, file_size: int) -> tuple[int, int] | Non
     return start, end
 
 
-@streams.get("/torrent/playback/{info_hash}/{file_index}")
-async def torrent_playback(request: Request, info_hash: str, file_index: int):
-    file_path = await torrent_client.wait_for_file_ready(info_hash, file_index)
+@streams.get("/stream/{file_name}")
+async def torrent_playback(request: Request, file_name: str, link: str, index: int):
+    file_path = await torrent_client.wait_for_file_ready(link, index)
     if not file_path:
         raise HTTPException(status_code=404, detail="File not ready for playback or torrent not found.")
 
