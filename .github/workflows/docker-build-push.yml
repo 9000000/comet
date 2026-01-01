@@ -44,11 +44,11 @@ jobs:
       id: docker_tags
       run: |
         if [ "${{ steps.branch-name.outputs.branch }}" = "main" ]; then
-          echo "tags=ghcr.io/9000000/comet:latest,docker.io/9000000/comet:latest" >> $GITHUB_OUTPUT
+          echo "tags=ghcr.io/9000000/comet:latest" >> $GITHUB_OUTPUT
         elif [ "${{ steps.branch-name.outputs.branch }}" = "development" ]; then
-          echo "tags=ghcr.io/9000000/comet:dev,docker.io/9000000/comet:dev" >> $GITHUB_OUTPUT
+          echo "tags=ghcr.io/9000000/comet:dev" >> $GITHUB_OUTPUT
         else
-          echo "tags=ghcr.io/9000000/comet:${{ steps.branch-name.outputs.branch }},docker.io/9000000/comet:${{ steps.branch-name.outputs.branch }}" >> $GITHUB_OUTPUT
+          echo "tags=ghcr.io/9000000/comet:${{ steps.branch-name.outputs.branch }}" >> $GITHUB_OUTPUT
         fi
 
     - name: Build and push Docker image
