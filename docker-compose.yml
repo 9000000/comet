@@ -1,0 +1,200 @@
+services:
+  comet:
+    container_name: comet
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Stremio Addon Configuration
+      ADDON_ID: stremio.comet.fast
+      ADDON_NAME: Comet
+
+      # FastAPI Server Configuration
+      FASTAPI_HOST: 0.0.0.0
+      FASTAPI_PORT: 8000
+      FASTAPI_WORKERS: 1
+      USE_GUNICORN: "True"
+      GUNICORN_PRELOAD_APP: "True"
+
+      # Dashboard Settings
+      ADMIN_DASHBOARD_PASSWORD: CHANGE_ME
+      PUBLIC_METRICS_API: "False"
+
+      # Database Configuration
+      DATABASE_TYPE: postgresql
+      DATABASE_URL: comet:comet@postgres:5432/comet
+      DATABASE_PATH: data/comet.db
+      DATABASE_BATCH_SIZE: 20000
+      DATABASE_STARTUP_CLEANUP_INTERVAL: 3600
+
+      # Cache Settings (Seconds)
+      METADATA_CACHE_TTL: 2592000
+      TORRENT_CACHE_TTL: 1296000
+      LIVE_TORRENT_CACHE_TTL: 1296000
+      DEBRID_CACHE_TTL: 86400
+      DEBRID_CACHE_CHECK_RATIO: 0.05
+      METRICS_CACHE_TTL: 60
+      SCRAPE_LOCK_TTL: 300
+      SCRAPE_WAIT_TIMEOUT: 30
+
+      # Background Scraper
+      BACKGROUND_SCRAPER_ENABLED: "False"
+      BACKGROUND_SCRAPER_CONCURRENT_WORKERS: 1
+      BACKGROUND_SCRAPER_INTERVAL: 3600
+      BACKGROUND_SCRAPER_MAX_MOVIES_PER_RUN: 100
+      BACKGROUND_SCRAPER_MAX_SERIES_PER_RUN: 100
+      CATALOG_TIMEOUT: 30
+
+      # Anime Mapping Configuration
+      ANIME_MAPPING_SOURCE: remote
+      ANIME_MAPPING_REFRESH_INTERVAL: 86400
+
+      # Proxy Configuration
+      BYPASS_PROXY_URL: http://warp:1080
+
+      # Jackett Configuration
+      SCRAPE_JACKETT: "False"
+      JACKETT_URL: http://127.0.0.1:9117
+      JACKETT_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      JACKETT_INDEXERS: "[]"
+
+      # Prowlarr Configuration
+      SCRAPE_PROWLARR: "False"
+      PROWLARR_URL: http://127.0.0.1:9696
+      PROWLARR_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      PROWLARR_INDEXERS: "[]"
+
+      # Indexer Settings
+      INDEXER_MANAGER_TIMEOUT: 30
+      INDEXER_MANAGER_WAIT_TIMEOUT: 30
+      INDEXER_MANAGER_UPDATE_INTERVAL: 900
+
+      # Torrent Settings
+      GET_TORRENT_TIMEOUT: 5
+      DOWNLOAD_TORRENT_FILES: "False"
+      MAGNET_RESOLVE_TIMEOUT: 60
+
+      # Scraping Configuration
+      SCRAPE_COMET: "False"
+      COMET_URL: https://comet.elfhosted.com
+
+      SCRAPE_NYAA: "False"
+      NYAA_ANIME_ONLY: "True"
+      NYAA_MAX_CONCURRENT_PAGES: 5
+
+      SCRAPE_ZILEAN: "False"
+      ZILEAN_URL: https://zilean.elfhosted.com
+
+      SCRAPE_STREMTHRU: "False"
+      STREMTHRU_SCRAPE_URL: https://stremthru.13377001.xyz
+
+      SCRAPE_BITMAGNET: "False"
+      BITMAGNET_URL: https://bitmagnetfortheweebs.midnightignite.me
+      BITMAGNET_MAX_CONCURRENT_PAGES: 5
+      BITMAGNET_MAX_OFFSET: 15000
+
+      SCRAPE_TORRENTIO: "False"
+      TORRENTIO_URL: https://torrentio.strem.fun
+
+      SCRAPE_MEDIAFUSION: "False"
+      MEDIAFUSION_URL: https://mediafusion.elfhosted.com
+      MEDIAFUSION_API_PASSWORD: ""
+      MEDIAFUSION_LIVE_SEARCH: "True"
+
+      SCRAPE_AIOSTREAMS: "False"
+      AIOSTREAMS_URL: https://aio.example.com
+      AIOSTREAMS_USER_UUID_AND_PASSWORD: "user_uuid:password"
+
+      SCRAPE_JACKETTIO: "False"
+      JACKETTIO_URL: https://jackettio.example.com
+
+      SCRAPE_DEBRIDIO: "False"
+      DEBRIDIO_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+      DEBRIDIO_PROVIDER: realdebrid
+      DEBRIDIO_PROVIDER_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+      SCRAPE_TORBOX: "False"
+      TORBOX_API_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+      SCRAPE_YGGTORRENT: "False"
+      YGGTORRENT_USERNAME: username
+      YGGTORRENT_PASSWORD: password
+      YGGTORRENT_PASSKEY: passkey
+      YGGTORRENT_MAX_CONCURRENT_PAGES: 5
+
+      # Debrid Stream Proxy Settings
+      PROXY_DEBRID_STREAM: "False"
+      PROXY_DEBRID_STREAM_PASSWORD: CHANGE_ME
+      PROXY_DEBRID_STREAM_MAX_CONNECTIONS: -1
+      PROXY_DEBRID_STREAM_DEBRID_DEFAULT_SERVICE: realdebrid
+      PROXY_DEBRID_STREAM_DEBRID_DEFAULT_APIKEY: CHANGE_ME
+
+      # Torrent Stream Policy
+      DISABLE_TORRENT_STREAMS: "False"
+      TORRENT_DISABLED_STREAM_NAME: "[INFO] Comet"
+      TORRENT_DISABLED_STREAM_DESCRIPTION: "Direct torrent playback is disabled on this server. Please configure a debrid provider."
+      TORRENT_DISABLED_STREAM_URL: https://comet.fast
+
+      # Content Filtering
+      REMOVE_ADULT_CONTENT: "False"
+      DIGITAL_RELEASE_FILTER: "False"
+      TMDB_READ_ACCESS_TOKEN: ""
+
+      # UI Customization
+      CUSTOM_HEADER_HTML: "None"
+
+      # StremThru Integration
+      STREMTHRU_URL: https://stremthru.13377001.xyz
+
+    volumes:
+      - comet_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    container_name: comet-postgres
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: comet
+      POSTGRES_PASSWORD: comet
+      POSTGRES_DB: comet
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=128MB"
+      - "-c"
+      - "effective_cache_size=384MB"
+      - "-c"
+      - "maintenance_work_mem=64MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=8MB"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=8MB"
+      - "-c"
+      - "max_connections=100"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U comet -d comet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  comet_data:
+  postgres_data:
