@@ -2,6 +2,40 @@
 
 <!-- markdownlint-disable MD024 -->
 
+## [2.43.0](https://github.com/g0ldyy/comet/compare/v2.42.0...v2.43.0) (2026-01-02)
+
+
+### Features
+
+* add configurable `PROXY_DEBRID_STREAM_INACTIVITY_THRESHOLD` setting to enable and refine the cleanup of inactive debrid stream connections ([cfc0eae](https://github.com/g0ldyy/comet/commit/cfc0eaea847779e111b63a26d93f50714d859ab8))
+* add configurable `PROXY_DEBRID_STREAM_INACTIVITY_THRESHOLD` setting to enable and refine the cleanup of inactive debrid stream connections ([aef99f4](https://github.com/g0ldyy/comet/commit/aef99f43bed584f352c469c143693fdf27eb7b21))
+* add configuration and UI option to sort cached and uncached stream results together ([a472595](https://github.com/g0ldyy/comet/commit/a4725958d051a11eed651a065578691ec0d2e1d6))
+* add configuration and UI option to sort cached and uncached stream results together ([5fda0df](https://github.com/g0ldyy/comet/commit/5fda0df1a98f313c49fdd3e65eafd24ae792924e))
+* populate `sortCachedUncachedTogether` checkbox from settings ([a5698b2](https://github.com/g0ldyy/comet/commit/a5698b28ac64996e675dcf49867192286b5a33db))
+
+## [2.42.0](https://github.com/g0ldyy/comet/compare/v2.41.0...v2.42.0) (2026-01-02)
+
+
+### Features
+
+* add fallback to check watch providers for movie release dates when upcoming release date is unavailable ([ac2cafb](https://github.com/g0ldyy/comet/commit/ac2cafb8abc1c46f8d44c8682f80e0ea0b0cdf2f))
+* add fallback to check watch providers for movie release dates when upcoming release date is unavailable ([6b6e466](https://github.com/g0ldyy/comet/commit/6b6e466c7d053be137127d38d924e296cc03f192))
+* enhance client IP detection by checking multiple headers and validating IP addresses ([a584432](https://github.com/g0ldyy/comet/commit/a5844323d9a2fee4454fc88a4202a9c0e9d43519))
+* enhance client IP detection by checking multiple headers and validating IP addresses ([b64b7f6](https://github.com/g0ldyy/comet/commit/b64b7f6e57f321fad8671a8412b7d919e36285d4))
+
+## [2.41.0](https://github.com/g0ldyy/comet/compare/v2.40.0...v2.41.0) (2026-01-01)
+
+
+### Features
+
+* improve torrent batch processing with in-memory deduplication, PostgreSQL advisory locks, and enhance metadata handling ([ac061ac](https://github.com/g0ldyy/comet/commit/ac061acd71e3d68574f2cb22cdbc06fe705d78f8))
+* improve torrent batch processing with in-memory deduplication, PostgreSQL advisory locks, and enhance metadata handling ([45ff7c1](https://github.com/g0ldyy/comet/commit/45ff7c173abb49a050c4ba14103fe6beae845d32))
+
+
+### Bug Fixes
+
+* add explicit BIGINT casting to timestamp comparisons in cache cleanup queries ([a52e5c0](https://github.com/g0ldyy/comet/commit/a52e5c06a57f6c7d36d2eeb6cf68779b9a6d92f5))
+
 ## [2.40.0](https://github.com/g0ldyy/comet/compare/v2.39.0...v2.40.0) (2025-12-31)
 
 

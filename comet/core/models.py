@@ -75,7 +75,7 @@ class AppSettings(BaseSettings):
     NYAA_ANIME_ONLY: Optional[bool] = True
     NYAA_MAX_CONCURRENT_PAGES: Optional[int] = 5
     SCRAPE_ZILEAN: Union[bool, str] = False
-    ZILEAN_URL: Union[str, List[str]] = "https://zilean.elfhosted.com"
+    ZILEAN_URL: Union[str, List[str]] = "https://zileanfortheweebs.midnightignite.me"
     SCRAPE_STREMTHRU: Union[bool, str] = False
     STREMTHRU_SCRAPE_URL: Union[str, List[str]] = "https://stremthru.13377001.xyz"
     SCRAPE_BITMAGNET: Union[bool, str] = False
@@ -114,6 +114,7 @@ class AppSettings(BaseSettings):
     PROXY_DEBRID_STREAM_MAX_CONNECTIONS: Optional[int] = -1
     PROXY_DEBRID_STREAM_DEBRID_DEFAULT_SERVICE: Optional[str] = "realdebrid"
     PROXY_DEBRID_STREAM_DEBRID_DEFAULT_APIKEY: Optional[str] = None
+    PROXY_DEBRID_STREAM_INACTIVITY_THRESHOLD: Optional[int] = 300
     STREMTHRU_URL: Optional[str] = "https://stremthru.13377001.xyz"
     DISABLE_TORRENT_STREAMS: Optional[bool] = False
     TORRENT_DISABLED_STREAM_NAME: Optional[str] = "[INFO] Comet"
@@ -682,6 +683,7 @@ rtn_ranking_default = DefaultRanking()
 
 class ConfigModel(BaseModel):
     cachedOnly: Optional[bool] = False
+    sortCachedUncachedTogether: Optional[bool] = False
     removeTrash: Optional[bool] = True
     resultFormat: Optional[List[str]] = ["all"]
     maxResultsPerResolution: Optional[int] = 0
