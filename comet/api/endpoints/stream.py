@@ -152,16 +152,15 @@ async def stream(
                 {
                     "name": "[❌] Comet",
                     "description": f"⚠️ OBSOLETE CONFIGURATION, PLEASE RE-CONFIGURE ON {request.url.scheme}://{request.url.netloc} ⚠️",
-                    "url": "https://comet.fast",
+                    "url": "https://comet.looks.legal",
                 }
             ]
         }
 
     if settings.DISABLE_TORRENT_STREAMS and config["debridService"] == "torrent":
         placeholder_stream = {
-            "name": settings.TORRENT_DISABLED_STREAM_NAME or "[INFO] Comet",
-            "description": settings.TORRENT_DISABLED_STREAM_DESCRIPTION
-            or "Direct torrent playback is disabled on this server.",
+            "name": settings.TORRENT_DISABLED_STREAM_NAME,
+            "description": settings.TORRENT_DISABLED_STREAM_DESCRIPTION,
         }
         if settings.TORRENT_DISABLED_STREAM_URL:
             placeholder_stream["url"] = settings.TORRENT_DISABLED_STREAM_URL
@@ -187,7 +186,7 @@ async def stream(
                         {
                             "name": "[🚫] Comet",
                             "description": "Content not digitally released yet.",
-                            "url": "https://comet.fast",
+                            "url": "https://comet.looks.legal",
                         }
                     ]
                 }
@@ -291,7 +290,7 @@ async def stream(
                     {
                         "name": "[⚠️] Comet",
                         "description": "Unable to get metadata.",
-                        "url": "https://comet.fast",
+                        "url": "https://comet.looks.legal",
                     }
                 ]
             }
@@ -381,7 +380,7 @@ async def stream(
                             {
                                 "name": "[🔄] Comet",
                                 "description": "Scraping in progress by another instance, please try again in a few seconds...",
-                                "url": "https://comet.fast",
+                                "url": "https://comet.looks.legal",
                             }
                         ]
                     }
@@ -397,7 +396,7 @@ async def stream(
                     {
                         "name": "[🔄] Comet",
                         "description": "First search for this media - More results will be available in a few seconds...",
-                        "url": "https://comet.fast",
+                        "url": "https://comet.looks.legal",
                     }
                 )
             else:
@@ -459,7 +458,7 @@ async def stream(
                         {
                             "name": "[❌] Comet",
                             "description": e.display_message,
-                            "url": "https://comet.fast",
+                            "url": "https://comet.looks.legal",
                         }
                     ]
                 }
@@ -501,7 +500,7 @@ async def stream(
                 {
                     "name": "[⚠️] Comet",
                     "description": "Debrid Stream Proxy Password incorrect.\nStreams will not be proxied.",
-                    "url": "https://comet.fast",
+                    "url": "https://comet.looks.legal",
                 }
             )
 
