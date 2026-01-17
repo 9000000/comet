@@ -28,7 +28,7 @@ class AppSettings(BaseSettings):
     FASTAPI_WORKERS: Optional[int] = 1
     USE_GUNICORN: Optional[bool] = True
     GUNICORN_PRELOAD_APP: Optional[bool] = True
-    EXECUTOR_MAX_WORKERS: Optional[int] = None
+    EXECUTOR_MAX_WORKERS: Optional[int] = 1
     ADMIN_DASHBOARD_PASSWORD: Optional[str] = "".join(
         random.choices(string.ascii_letters + string.digits, k=16)
     )
@@ -39,6 +39,7 @@ class AppSettings(BaseSettings):
     DATABASE_BATCH_SIZE: Optional[int] = 20000
     DATABASE_READ_REPLICA_URLS: List[str] = Field(default_factory=list)
     DATABASE_STARTUP_CLEANUP_INTERVAL: Optional[int] = 3600
+    DATABASE_FORCE_IPV4_RESOLUTION: Optional[bool] = False
     METADATA_CACHE_TTL: Optional[int] = 2592000  # 30 days
     TORRENT_CACHE_TTL: Optional[int] = 2592000  # 30 days
     LIVE_TORRENT_CACHE_TTL: Optional[int] = 604800  # 7 days
@@ -105,6 +106,7 @@ class AppSettings(BaseSettings):
     SCRAPE_TORBOX: Union[bool, str] = False
     TORBOX_API_KEY: Optional[str] = None
     SCRAPE_TORRENTSDB: Union[bool, str] = False
+    SCRAPE_PEERFLIX: Union[bool, str] = False
     CUSTOM_HEADER_HTML: Optional[str] = None
     PROXY_DEBRID_STREAM: Optional[bool] = False
     PROXY_DEBRID_STREAM_PASSWORD: Optional[str] = "".join(
@@ -142,6 +144,13 @@ class AppSettings(BaseSettings):
     HTTP_CACHE_STALE_WHILE_REVALIDATE: Optional[int] = 60
     HTTP_CACHE_MANIFEST_TTL: Optional[int] = 86400
     HTTP_CACHE_CONFIGURE_TTL: Optional[int] = 86400
+    DOWNLOAD_GENERIC_TRACKERS: Optional[bool] = False
+
+    @field_validator("EXECUTOR_MAX_WORKERS", mode="before")
+    def normalize_executor_workers(cls, v):
+        if v is None or v == "" or str(v).lower() == "none":
+            return 1
+        return v
 
     @field_validator("INDEXER_MANAGER_TYPE")
     def set_indexer_manager_type(cls, v, values):
@@ -255,7 +264,11 @@ class CometSettingsModel(SettingsModel):
     model_config = SettingsConfigDict()
 
     resolutions: ResolutionConfig = ResolutionConfig(
-        r2160p=True, r480p=True, r360p=True
+        r2160p=True,
+        r576p=True,
+        r480p=True,
+        r360p=True,
+        r240p=True,
     )
 
     options: OptionsConfig = OptionsConfig(remove_ranks_under=-10000000000)
@@ -683,6 +696,30 @@ rtn_settings_default_dumped = rtn_settings_default.model_dump()
 rtn_ranking_default = DefaultRanking()
 
 
+VALID_DEBRID_SERVICES = [
+    "realdebrid",
+    "alldebrid",
+    "premiumize",
+    "torbox",
+    "debrider",
+    "easydebrid",
+    "debridlink",
+    "offcloud",
+    "pikpak",
+]
+
+
+class DebridServiceEntry(BaseModel):
+    service: str
+    apiKey: str = ""
+
+    @field_validator("service")
+    def check_service(cls, v):
+        if v not in VALID_DEBRID_SERVICES:
+            raise ValueError(f"Invalid debrid service: {v}")
+        return v
+
+
 class ConfigModel(BaseModel):
     cachedOnly: Optional[bool] = False
     sortCachedUncachedTogether: Optional[bool] = False
@@ -690,8 +727,16 @@ class ConfigModel(BaseModel):
     resultFormat: Optional[List[str]] = ["all"]
     maxResultsPerResolution: Optional[int] = 0
     maxSize: Optional[float] = 0
+
+    # Legacy single-service fields
     debridService: Optional[str] = "torrent"
     debridApiKey: Optional[str] = ""
+
+    # Multi-Debrid fields
+    debridServices: Optional[List[DebridServiceEntry]] = []
+    enableTorrent: Optional[bool] = False
+    deduplicateStreams: Optional[bool] = False
+
     debridStreamProxyPassword: Optional[str] = ""
     languages: Optional[dict] = rtn_settings_default_dumped["languages"]
     resolutions: Optional[dict] = rtn_settings_default_dumped["resolutions"]
@@ -719,19 +764,19 @@ class ConfigModel(BaseModel):
 
     @field_validator("debridService")
     def check_debrid_service(cls, v):
-        if v not in [
-            "realdebrid",
-            "alldebrid",
-            "premiumize",
-            "torbox",
-            "debrider",
-            "easydebrid",
-            "debridlink",
-            "offcloud",
-            "pikpak",
-            "torrent",
-        ]:
+        if v not in VALID_DEBRID_SERVICES + ["torrent"]:
             raise ValueError("Invalid debridService")
+        return v
+
+    @field_validator("debridServices", mode="before")
+    def validate_debrid_services(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, list):
+            return [
+                DebridServiceEntry(**entry) if isinstance(entry, dict) else entry
+                for entry in v
+            ]
         return v
 
 
@@ -777,36 +822,8 @@ elif settings.DATABASE_TYPE == "sqlite" and settings.DATABASE_READ_REPLICA_URLS:
     logger.log("DATABASE", "Read replicas are ignored for sqlite deployments")
 
 database = ReplicaAwareDatabase(
-    _build_database_instance(database_url), replicas=replica_instances
+    _build_database_instance(database_url),
+    replicas=replica_instances,
+    force_ipv4=settings.DATABASE_FORCE_IPV4_RESOLUTION
+    and settings.DATABASE_TYPE == "postgresql",
 )
-
-trackers = [
-    "udp://tracker-udp.gbitt.info:80/announce",
-    "udp://tracker.0x7c0.com:6969/announce",
-    "udp://opentracker.io:6969/announce",
-    "udp://leet-tracker.moe:1337/announce",
-    "udp://tracker.torrent.eu.org:451/announce",
-    "udp://tracker.tiny-vps.com:6969/announce",
-    "udp://tracker.leechers-paradise.org:6969/announce",
-    "udp://tracker.pomf.se:80/announce",
-    "udp://9.rarbg.me:2710/announce",
-    "http://tracker.gbitt.info:80/announce",
-    "udp://tracker.bittor.pw:1337/announce",
-    "udp://open.free-tracker.ga:6969/announce",
-    "udp://open.stealth.si:80/announce",
-    "udp://retracker01-msk-virt.corbina.net:80/announce",
-    "udp://tracker.openbittorrent.com:80/announce",
-    "udp://tracker.opentrackr.org:1337/announce",
-    "udp://isk.richardsw.club:6969/announce",
-    "https://tracker.gbitt.info:443/announce",
-    "udp://tracker.coppersurfer.tk:6969/announce",
-    "udp://oh.fuuuuuck.com:6969/announce",
-    "udp://ipv4.tracker.harry.lu:80/announce",
-    "udp://open.demonii.com:1337/announce",
-    "https://tracker.tamersunion.org:443/announce",
-    "https://tracker.renfei.net:443/announce",
-    "udp://open.tracker.cl:1337/announce",
-    "udp://tracker.internetwarriors.net:1337/announce",
-    "udp://exodus.desync.com:6969/announce",
-    "udp://tracker.dump.cl:6969/announce",
-]

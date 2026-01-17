@@ -11,11 +11,14 @@ from comet.debrid.exceptions import DebridAuthError
 from comet.services.debrid_cache import cache_availability
 from comet.services.filtering import quick_alias_match
 from comet.services.torrent_manager import torrent_update_queue
-from comet.utils.parsing import is_video
+from comet.utils.parsing import ensure_multi_language, is_video
 
 
 def batch_parse(filenames):
-    return [parse(f) for f in filenames]
+    parsed_results = [parse(f) for f in filenames]
+    for parsed in parsed_results:
+        ensure_multi_language(parsed)
+    return parsed_results
 
 
 class StremThru:
@@ -57,21 +60,21 @@ class StremThru:
 
             if "data" not in user:
                 raise DebridAuthError(
-                    self.name,
-                    f"{self.name}: Invalid API key.\nPlease check your configuration.",
+                    self.real_debrid_name,
+                    f"{self.real_debrid_name}: Invalid API key.\nPlease check your configuration.",
                 )
 
             if user["data"]["subscription_status"] != "premium":
                 raise DebridAuthError(
-                    self.name,
-                    f"{self.name}: No active subscription.\nPlease renew your debrid account.",
+                    self.real_debrid_name,
+                    f"{self.real_debrid_name}: No active subscription.\nPlease renew your debrid account.",
                 )
         except DebridAuthError:
             raise
         except Exception as e:
             raise DebridAuthError(
-                self.name,
-                f"{self.name}: Failed to check account status.\n{e}",
+                self.real_debrid_name,
+                f"{self.real_debrid_name}: Failed to check account status.\n{e}",
             )
 
     async def get_instant(self, magnets: list):

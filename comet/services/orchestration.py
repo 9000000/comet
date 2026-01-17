@@ -10,14 +10,12 @@ from comet.scrapers.manager import scraper_manager
 from comet.services.filtering import filter_worker
 from comet.services.ranking import rank_worker
 from comet.services.torrent_manager import torrent_update_queue
+from comet.utils.parsing import ensure_multi_language
 
 
 class TorrentManager:
     def __init__(
         self,
-        debrid_service: str,
-        debrid_api_key: str,
-        ip: str,
         media_type: str,
         media_full_id: str,
         media_only_id: str,
@@ -33,9 +31,6 @@ class TorrentManager:
         search_episode: int | None = None,
         search_season: int | None = None,
     ):
-        self.debrid_service = debrid_service
-        self.debrid_api_key = debrid_api_key
-        self.ip = ip
         self.media_type = media_type
         self.media_id = media_full_id
         self.media_only_id = media_only_id
@@ -138,6 +133,7 @@ class TorrentManager:
 
         for row in rows:
             parsed_data = ParsedData(**orjson.loads(row["parsed"]))
+            ensure_multi_language(parsed_data)
 
             if row["episode"] is None and parsed_data.episodes:
                 target_episode = self.search_episode if self.is_kitsu else self.episode
@@ -241,7 +237,6 @@ class TorrentManager:
         rtn_ranking: DefaultRanking,
         max_results_per_resolution: int,
         max_size: int,
-        cached_only: int,
         remove_trash: int,
     ):
         loop = asyncio.get_running_loop()
@@ -249,11 +244,9 @@ class TorrentManager:
             get_executor(),
             rank_worker,
             self.torrents,
-            self.debrid_service,
             rtn_settings,
             rtn_ranking,
             max_results_per_resolution,
             max_size,
-            cached_only,
             remove_trash,
         )
